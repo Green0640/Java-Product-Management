@@ -1,7 +1,5 @@
 package org.example.productmanagement.service;
 
-import org.example.productmanagement.entity.Product;
-import org.example.productmanagement.repository.ProductRepository;
 import org.example.productmanagement.service.exception.ProductNotFoundException;
 import org.example.productmanagement.service.model.CreateProductCommand;
 import org.example.productmanagement.service.model.ProductResult;
@@ -10,11 +8,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -83,35 +76,5 @@ class ProductServiceTest {
         assertThatThrownBy(() -> service.update(new UpdateProductCommand(99L, "X", null, BigDecimal.ONE, 1, false)))
                 .isInstanceOf(ProductNotFoundException.class);
         assertThatThrownBy(() -> service.delete(99L)).isInstanceOf(ProductNotFoundException.class);
-    }
-
-    private static class InMemoryProductRepository implements ProductRepository {
-
-        private final Map<Long, Product> store = new LinkedHashMap<>();
-        private long nextId = 1;
-
-        @Override
-        public Product save(Product product) {
-            Long id = product.getId() != null ? product.getId() : nextId++;
-            Product saved = new Product(id, product.getName(), product.getDescription(),
-                    product.getPrice(), product.getStock(), product.isOnSale());
-            store.put(id, saved);
-            return saved;
-        }
-
-        @Override
-        public Optional<Product> findById(Long id) {
-            return Optional.ofNullable(store.get(id));
-        }
-
-        @Override
-        public List<Product> findAll() {
-            return new ArrayList<>(store.values());
-        }
-
-        @Override
-        public void deleteById(Long id) {
-            store.remove(id);
-        }
     }
 }

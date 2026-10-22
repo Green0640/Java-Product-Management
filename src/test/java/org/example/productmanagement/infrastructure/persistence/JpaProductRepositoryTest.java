@@ -52,4 +52,39 @@ class JpaProductRepositoryTest {
 
         assertThat(repository.findById(saved.getId())).isEmpty();
     }
+
+    @Test
+    void decreaseStockSucceedsWhenEnoughStock() {
+        Product saved = repository.save(new Product(null, "Cable", null, new BigDecimal("100"), 5, true));
+
+        assertThat(repository.decreaseStock(saved.getId(), 5)).isTrue();
+        assertThat(repository.findById(saved.getId())).get()
+                .extracting(Product::getStock)
+                .isEqualTo(0);
+    }
+
+    @Test
+    void decreaseStockFailsWithoutChangingStockWhenNotEnough() {
+        Product saved = repository.save(new Product(null, "Cable", null, new BigDecimal("100"), 5, true));
+
+        assertThat(repository.decreaseStock(saved.getId(), 6)).isFalse();
+        assertThat(repository.findById(saved.getId())).get()
+                .extracting(Product::getStock)
+                .isEqualTo(5);
+    }
+
+    @Test
+    void decreaseStockFailsWithoutChangingStockWhenNotOnSale() {
+        Product saved = repository.save(new Product(null, "Cable", null, new BigDecimal("100"), 5, false));
+
+        assertThat(repository.decreaseStock(saved.getId(), 1)).isFalse();
+        assertThat(repository.findById(saved.getId())).get()
+                .extracting(Product::getStock)
+                .isEqualTo(5);
+    }
+
+    @Test
+    void decreaseStockOfUnknownProductFails() {
+        assertThat(repository.decreaseStock(999L, 1)).isFalse();
+    }
 }

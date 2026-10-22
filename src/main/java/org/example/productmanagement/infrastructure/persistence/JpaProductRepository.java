@@ -40,4 +40,9 @@ public class JpaProductRepository implements ProductRepository {
     public void deleteById(Long id) {
         jpaRepository.deleteById(id);
     }
+
+    @Override
+    public boolean decreaseStock(Long productId, int quantity) {
+        return jpaRepository.decreaseStock(productId, quantity) == 1;
+    }
 }

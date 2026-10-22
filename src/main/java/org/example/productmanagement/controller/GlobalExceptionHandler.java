@@ -2,6 +2,9 @@ package org.example.productmanagement.controller;
 
 import org.example.productmanagement.dto.ApiErrorResponse;
 import org.example.productmanagement.dto.ErrorCode;
+import org.example.productmanagement.service.exception.IdempotencyKeyConflictException;
+import org.example.productmanagement.service.exception.IdempotencyKeyReusedException;
+import org.example.productmanagement.service.exception.OrderNotFoundException;
 import org.example.productmanagement.service.exception.ProductNoStockException;
 import org.example.productmanagement.service.exception.ProductNotFoundException;
 import org.example.productmanagement.service.exception.ProductNotOnSaleException;
@@ -15,9 +18,11 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingRequestHeaderException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
+import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
@@ -45,6 +50,21 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return toResponse(ErrorCode.PRODUCT_NOT_ON_SALE);
     }
 
+    @ExceptionHandler(OrderNotFoundException.class)
+    public ResponseEntity<ApiErrorResponse> handleOrderNotFound(OrderNotFoundException ex) {
+        return toResponse(ErrorCode.ORDER_NOT_FOUND);
+    }
+
+    @ExceptionHandler(IdempotencyKeyReusedException.class)
+    public ResponseEntity<ApiErrorResponse> handleIdempotencyKeyReused(IdempotencyKeyReusedException ex) {
+        return toResponse(ErrorCode.IDEMPOTENCY_KEY_REUSED);
+    }
+
+    @ExceptionHandler(IdempotencyKeyConflictException.class)
+    public ResponseEntity<ApiErrorResponse> handleIdempotencyKeyConflict(IdempotencyKeyConflictException ex) {
+        return toResponse(ErrorCode.IDEMPOTENCY_KEY_CONFLICT);
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiErrorResponse> handleUnexpected(Exception ex) {
         log.error("Unexpected error", ex);
@@ -66,8 +86,12 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     }
 
     private static ErrorCode toErrorCode(Exception ex, HttpStatusCode statusCode) {
-        if (ex instanceof MethodArgumentNotValidException) {
+        // 方法參數本身有驗證註解時（例如 @RequestHeader @NotBlank），Spring 會改丟 HandlerMethodValidationException
+        if (ex instanceof MethodArgumentNotValidException || ex instanceof HandlerMethodValidationException) {
             return ErrorCode.VALIDATION_FAILED;
+        }
+        if (ex instanceof MissingRequestHeaderException) {
+            return ErrorCode.MISSING_HEADER;
         }
         if (ex instanceof HttpMessageNotReadableException) {
             return ErrorCode.MALFORMED_REQUEST;

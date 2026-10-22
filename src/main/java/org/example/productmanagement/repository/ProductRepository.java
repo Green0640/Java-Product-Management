@@ -17,4 +17,12 @@ public interface ProductRepository {
     List<Product> findAll();
 
     void deleteById(Long id);
+
+    /**
+     * 原子性扣庫存：只有商品上架中且庫存足夠時才扣除，避免同時下單造成超賣。
+     * 成功扣除後，該商品會被鎖住直到交易結束，同一筆交易扣多項商品時要依固定順序呼叫，避免 deadlock。
+     *
+     * @return 扣除成功回傳 true；庫存不足、商品未上架或不存在回傳 false
+     */
+    boolean decreaseStock(Long productId, int quantity);
 }
